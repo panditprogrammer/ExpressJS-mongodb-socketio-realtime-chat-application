@@ -103,11 +103,11 @@ app.use(globalAuthCheck);
 
 // 10. Web Push Setup (This is a setup, not a middleware, so placement doesn't affect request flow)
 // It only sets up details for future web push operations, not processing incoming requests.
-webPush.setVapidDetails(
-    'mailto:panditprogrammer@gmail.com',
-    process.env.WEB_PUSH_VAPID_PUBLIC_KEY,
-    process.env.WEB_PUSH_VAPID_PRIVATE_KEY
-);
+//webPush.setVapidDetails(
+//    'mailto:panditprogrammer@gmail.com',
+ //   process.env.WEB_PUSH_VAPID_PUBLIC_KEY,
+ //   process.env.WEB_PUSH_VAPID_PRIVATE_KEY
+//);
 
 
 
