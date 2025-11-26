@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+  <% if(ogData){ %>
+
+    <meta property="og:title" content="<%= ogData?.title %>" />
+    <meta property="og:description" content="<%= ogData?.description %>" />
+    <meta property="og:image" content="<%= ogData?.image %>" />
+    <meta property="og:url" content="<%= ogData?.url %>" />
+    <meta property="og:type" content="<%= ogData?.type %>" />
+    <meta name="twitter:card" content="<%= ogData?.tw_card %>" />
+    <meta name="twitter:title" content="<%= ogData?.tw_title %>" />
+    <meta name="twitter:description" content="<%= ogData?.tw_description %>" />
+    <meta name="twitter:image" content="<%= ogData?.tw_image %>" />
+
+    <%}%>
+
+
+      <title>
+        <%= (typeof websiteTitle !=='undefined' && websiteTitle !==null) ? websiteTitle : websiteName %>
+      </title>
+
+      <link rel="stylesheet" href="/css/style.css">
+      <link rel="stylesheet" href="/css/tailwind.css">
+      <!-- box icon  -->
+      <!-- <link rel="stylesheet" href="/lib/boxicons/boxicons.min.css"> -->
+
+      <!-- Owl Carousel CSS -->
+      <link rel="stylesheet" href="/lib/owl.carousel/owl.carousel.min.css">
+      <link rel="stylesheet" href="/lib/owl.carousel/owl.theme.default.min.css">
+
+      <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css">
+
+      <!-- 3d slider  -->
+      <link rel="stylesheet" href="/lib/swiper/swiper-bundle.min.css">
+
+      <!-- alertify -->
+      <link rel="stylesheet" href="/lib/alertify/alertify.min.css" />
+      <link rel="stylesheet" href="/lib/alertify/default.min.css" />
+
+          <!-- upload file  -->
+    <link rel="stylesheet" href="/lib/filepond/filepond.css">
+    <link rel="stylesheet" href="/lib/filepond/filepond-plugin-image-edit.css">
+    <link rel="stylesheet" href="/lib/filepond/filepond-plugin-image-preview.css">
+
+
+      <!-- favicons  -->
+      <link rel="apple-touch-icon" sizes="57x57" href="/favicon/apple-icon-57x57.png">
+      <link rel="apple-touch-icon" sizes="60x60" href="/favicon/apple-icon-60x60.png">
+      <link rel="apple-touch-icon" sizes="72x72" href="/favicon/apple-icon-72x72.png">
+      <link rel="apple-touch-icon" sizes="76x76" href="/favicon/apple-icon-76x76.png">
+      <link rel="apple-touch-icon" sizes="114x114" href="/favicon/apple-icon-114x114.png">
+      <link rel="apple-touch-icon" sizes="120x120" href="/favicon/apple-icon-120x120.png">
+      <link rel="apple-touch-icon" sizes="144x144" href="/favicon/apple-icon-144x144.png">
+      <link rel="apple-touch-icon" sizes="152x152" href="/favicon/apple-icon-152x152.png">
+      <link rel="apple-touch-icon" sizes="180x180" href="/favicon/apple-icon-180x180.png">
+      <link rel="icon" type="image/png" sizes="192x192" href="/favicon/android-icon-192x192.png">
+      <link rel="icon" type="image/png" sizes="32x32" href="/favicon/favicon-32x32.png">
+      <link rel="icon" type="image/png" sizes="96x96" href="/favicon/favicon-96x96.png">
+      <link rel="icon" type="image/png" sizes="16x16" href="/favicon/favicon-16x16.png">
+      <meta name="msapplication-TileColor" content="#ffffff">
+      <meta name="msapplication-TileImage" content="/favicon/ms-icon-144x144.png">
+      <meta name="theme-color" content="#ffffff">
+      <link rel="manifest" href="/manifest.json">
+
+      <style>
+        /* Custom scrollbar for chat body */
+        #chat-body::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        #chat-body::-webkit-scrollbar-thumb {
+          background-color: #cbd5e1;
+          border-radius: 3px;
+        }
+
+        /* Sticky sidebar ensures friends list stays in view on large screens */
+        .sticky-sidebar-container {
+          max-height: calc(100vh - 80px);
+          overflow-y: auto;
+        }
+      </style>
+</head>

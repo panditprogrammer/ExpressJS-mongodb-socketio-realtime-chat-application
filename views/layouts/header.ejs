@@ -1,0 +1,50 @@
+<%- include('head-script') %>
+
+  <body class="bg-primary-bg min-h-screen font-sans">
+
+    <header id="main-header" class="sticky top-0 bg-white shadow-lg z-30 border-b border-gray-200">
+      <div class="container mx-auto px-4 lg:px-6 flex items-center justify-between h-16">
+        <a href="#" class="text-2xl font-extrabold text-primary-blue mr-6 tracking-tight"><%= websiteName %></a>
+
+        <div>
+          
+        </div>
+
+        <nav class="flex items-center space-x-3 ml-auto">
+          <a href="/" class="nav-icon text-gray-700 hover:text-primary-blue p-3 rounded-full hover:bg-gray-100"
+            title="Home">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"></path>
+            </svg>
+          </a>
+          
+
+          <div id="profileBtn" class="user-profile relative group cursor-pointer">
+            <img src="<%= user?.avatar %>" alt="<%= user?.fullName %>"
+              class="w-9 h-9 rounded-full object-cover border-2 border-transparent border-primary-blue transition">
+            
+              <div id="profileMenu" class="hidden absolute right-0 mt-3 w-48 bg-white rounded-lg shadow-xl py-1 border border-gray-100 z-40">
+
+              <% if(user?.id) {%>
+
+                <a href="javascript:void(0);" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">👤 <%= user?.fullName %> </a>
+                <div class="border-t my-1"></div>
+
+                <form class="w-full" method="post" action="/users/logout">
+                  <button onclick="return confirm('Are you sure to logout?')" type="submit"
+                    class="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                    <i class="fa fa-arrow-right icon me-2" aria-hidden="true"></i> Log Out
+                  </button>
+                </form>
+
+                <%}else{%>
+                  <button id="googleSignInBtn" class="w-full cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">👤
+                    SignIn with Google
+                  </button>
+                  <%} %>
+            </div>
+          </div>
+        </nav>
+      </div>
+    </header>

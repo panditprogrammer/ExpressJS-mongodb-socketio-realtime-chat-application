@@ -1,0 +1,99 @@
+<%- include('../layouts/head-script') %>
+
+
+
+    <body>
+        <%- include('../layouts/loader') %>
+
+
+            <div class="min-h-screen bg-gray-100 text-gray-900 flex justify-center">
+                <div class="max-w-screen-xl m-0 sm:m-10 bg-white shadow sm:rounded-lg flex justify-center flex-1">
+
+                    <div class="flex-1 bg-orange-100 text-center hidden lg:flex">
+                        <div class="m-12 xl:m-16 w-full bg-contain bg-center bg-no-repeat"
+                            style="background-image: url('https://storage.googleapis.com/devitary-image-host.appspot.com/15848031292911696601-undraw_designer_life_w96d.svg');">
+                        </div>
+                    </div>
+
+                    <div class="lg:w-1/2 xl:w-5/12 p-6 sm:p-12">
+                        <div>
+                            <a href="/"><img src="/images/bizmapia-logo-dark.png" class="w-32 mx-auto"></a>
+                        </div>
+                        <div class="mt-6 flex flex-col items-center">
+                            <h1 class="text-xl font-extrabold uppercase">
+                                Creating your account...
+                            </h1>
+                            <div class="w-full flex-1">
+
+                                <div class="mx-auto max-w-xs">
+                                    <input type="hidden" name="googleIdToken" id="googleIdToken">
+                                    <!-- Two buttons inside a grid layout -->
+
+                                    <div class="my-4 flex justify-center items-center">
+                                        <img src="/images/avatar.png" id="avatar" alt="user profile"
+                                            class="rounded-full w-14 h-14 border">
+                                    </div>
+                                    <div class="my-2 text-center">
+                                        <strong id="email"></strong>
+                                    </div>
+
+                                    <hr>
+                                    <p class="py-4 font-bold">Redirecting... Please wait!</p>
+
+                                </div>
+
+                            </div>
+
+
+                        </div>
+
+                    </div>
+                </div>
+
+
+            </div>
+            </div>
+
+
+
+            <%- include('../layouts/footer') %>
+
+
+                <%- include('auth-footer') %>
+
+                    <script>
+                        $(document).ready(function () {
+
+                            // after redirect from google auth 
+                            if (localStorage.getItem("googleIdToken")) {
+                                $("#fullName").val(localStorage.getItem("fullName"));
+                                $("#avatar").attr("src", localStorage.getItem("avatar"));
+                                $("#email").text(localStorage.getItem("email"));
+                                $("#googleIdToken").val(localStorage.getItem("googleIdToken"));
+
+                                const formData = {
+                                    googleIdToken: localStorage.getItem("googleIdToken"),
+                                }
+                                ajaxResponseRequest("/api/v1/users/register/social", formData, "POST").then((result) => {
+                                    console.log("register/social",result);
+                                    
+                                    if (result?.success) {
+                                        localStorage.removeItem("email");
+                                        localStorage.removeItem("fullName");
+                                        localStorage.removeItem("avatar");
+                                        localStorage.removeItem("googleIdToken");
+                                    }
+                                    location.href = "/";
+                                }).catch((error) => {
+                                    const response = error.responseJSON;
+                                    console.log(response);
+                                    
+
+                                    if (response) {
+                                        alertify.error(response.statusCode + " " + response.message);
+                                    }
+                                });
+                            }
+
+                        })
+                    </script>

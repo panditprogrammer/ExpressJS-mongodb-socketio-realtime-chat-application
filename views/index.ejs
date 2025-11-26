@@ -1,0 +1,560 @@
+<%- include('layouts/header') %>
+
+
+
+  <main class="container mx-auto px-4 py-6">
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-6">
+
+      <div class="lg:col-span-3 lg:mx-auto" style="max-width: 600px;">
+
+        <div id="create-post-widget"
+          class="bg-white p-4 rounded-xl shadow-md mb-6 cursor-pointer border border-gray-200 transition hover:shadow-lg">
+          <div class="flex items-center">
+            <img src="<%= user?.avatar %>" class="w-10 h-10 rounded-full mr-4 object-cover">
+            <input type="text" readonly placeholder="Share a post, image, or video..."
+              class="flex-grow py-3 px-4 text-gray-600 bg-gray-100 rounded-full cursor-pointer hover:bg-gray-200 border border-transparent focus:outline-none">
+          </div>
+        </div>
+
+        <div id="posts-feed" class="w-full space-y-4">
+
+        </div>
+
+        <div id="post-loader" class="w-full text-center py-4 hidden">
+          <div class="loader animate-pulse text-gray-500">Loading posts...</div>
+        </div>
+
+      </div>
+
+      <div class="lg:col-span-2 hidden lg:block">
+        <div class="sticky top-20 sticky-sidebar-container">
+
+          <!-- pending friend request  -->
+          <div id="friend-request-area" class="bg-white p-4 rounded-xl shadow-md mb-6 border border-gray-200">
+            <h3 class="font-bold text-lg text-red-600 mb-3 border-b pb-2">Connect Requests (0)</h3>
+            <div id="friendRequestList" class="text-sm text-gray-500">friends request will appear here.</div>
+          </div>
+
+
+          <!-- already friend list -->
+          <div id="friends-list-area" class="bg-white p-4 rounded-xl shadow-md border border-gray-200">
+            <h3 class="font-bold text-lg text-primary-blue mb-3 border-b pb-2">Friends List (0)</h3>
+            <ul id="friendList" class="space-y-3">
+
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <div id="post-creation-modal" class="hidden fixed inset-0 z-80 bg-black/50 flex items-center justify-center p-4">
+    <div
+      class="bg-white rounded-xl shadow-2xl p-6 w-full max-w-lg transform transition-all duration-300 scale-95 opacity-0"
+      id="modal-content">
+      <div class="flex justify-between items-center mb-4 border-b pb-3">
+        <h3 class="text-2xl font-bold text-gray-800"><span id="postmodeltitle">Create</span> Post</h3>
+        <button type="button" id="close-post-modal"
+          class="text-gray-400 hover:text-gray-600 text-2xl leading-none">X</button>
+      </div>
+
+      <form id="createPostForm">
+        <input type="hidden" name="editpostid">
+        <textarea id="post-text"
+          class="w-full p-4 border border-gray-300 rounded-lg mb-4 resize-none focus:ring-primary-blue focus:border-primary-blue text-gray-700 placeholder-gray-400 text-base"
+          rows="5" placeholder="What inspiring thought do you want to share today?"></textarea>
+
+        <div id="imageVideoContainer"
+          class="w-full flex justify-between items-center mb-6 p-3 rounded-lg border border-dashed border-gray-300">
+          <div class="w-full grid grid-cols-1">
+            <div>
+              <input type="file" accept="image/*,video/*" class="filepond" id="uploadPostImageVideo"
+                name="postImageVideo" />
+              <input type="hidden" name="imageVideo" id="imageVideo">
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button type="submit"
+            class="px-6 py-2 bg-blue-200 rounded-full font-semibold hover:bg-blue-700 transition duration-150 shadow-md">Post
+            Now</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="chat-window-fixed"
+    class="hidden fixed bottom-4 right-4 z-50 w-80 shadow-2xl rounded-xl overflow-hidden border border-gray-200">
+
+    <div id="chat-header" class="bg-blue-200 p-3 flex justify-between items-center cursor-pointer">
+      <div class="flex items-center">
+        <div id="friend-status-dot" class="w-3.5 h-3.5 rounded-full mr-2 bg-green-500 border-2 border-primary-blue">
+        </div>
+        <span class="font-semibold text-lg" id="chat-friend-name"></span>
+      </div>
+      <button id="minimize-chat" class="hover:text-blue-200 text-2xl leading-none font-light">
+        —
+      </button>
+    </div>
+
+    <div id="chat-body" class="bg-white h-64 overflow-y-auto p-3 flex flex-col-reverse space-y-reverse space-y-3">
+    </div>
+
+    <div id="chat-input-area" class="p-3 border-t bg-white">
+      <input type="text" placeholder="Send a message..."
+        class="w-full py-2 px-3 text-sm border border-gray-300 rounded-full focus:ring-primary-blue focus:border-primary-blue focus:outline-none">
+    </div>
+  </div>
+
+  <%- include('layouts/footer') %>
+
+    <script>
+      $(document).ready(function () {
+
+        $('#createPostForm').submit((function (e) {
+          e.preventDefault();
+
+
+          // update if id available
+          const postId = $("input[name=editpostid]").val();
+          if (postId) {
+            const formData = {
+              title: $("#post-text").val(),
+            }
+
+            ajaxRequest(`/api/v1/posts/${postId}`, formData, "PUT", location.href);
+            return;
+          }
+
+          // create new 
+          const formData = {
+            title: $("#post-text").val(),
+            imageVideo: $("#imageVideo").val()
+          }
+
+          ajaxRequest("/api/v1/posts", formData, "POST", location.href);
+        }))
+
+
+        // load posts 
+        let currentPage = 1;
+        let isLoading = false;
+        let hasNextPage = true;
+
+
+        function loadPosts(page = 1) {
+          if (isLoading || !hasNextPage) return;
+
+          isLoading = true;
+          $("#post-loader").removeClass("hidden");
+
+          ajaxResponseRequest('/api/v1/posts?page=' + page, {}, "GET")
+            .then((result) => {
+              if (!result.success) return;
+
+              const posts = result.data.posts;
+              const postsContainer = $("#posts-feed");
+
+              posts.forEach(post => {
+                postsContainer.append(window.generatePostHTML(post));
+              });
+
+              // Update pagination
+              currentPage = result.data.currentPage;
+              hasNextPage = result.data.hasNextPage;
+
+              isLoading = false;
+              $("#post-loader").addClass("hidden");
+            }).catch((err) => {
+              console.error("Pagination load error:", err.responseJSON)
+              isLoading = false;
+              $("#post-loader").addClass("hidden");
+            }
+            );
+        }
+        // loading when scroll 
+        $(window).on("scroll", function () {
+          const scrollPos = $(window).scrollTop() + $(window).height();
+          const triggerPos = $(document).height() - 300; // load 300px before bottom
+
+          if (scrollPos >= triggerPos) {
+            if (!isLoading && hasNextPage) {
+              loadPosts(currentPage + 1);
+            }
+          }
+        });
+
+        // init post load
+        loadPosts(1);
+      });
+    </script>
+
+
+    <script>
+      $(document).ready(function () {
+
+        const CURRENT_USER_ID = window.currentUserId;
+        let activeChatFriendId = null;
+        let activeChatFriendName = null;
+        let onlineFriends = new Set(); // To track online status by ID
+
+        // --- DOM Elements ---
+        const friendRequestArea = $('#friend-request-area');
+        const friendRequestListDiv = $('#friendRequestList');
+        const friendList = $('#friendList');
+        const chatWindow = $('#chat-window-fixed');
+        const chatBody = $('#chat-body');
+        const chatInput = $('#chat-input-area input');
+        const chatFriendName = $('#chat-friend-name');
+        const friendStatusDot = $('#friend-status-dot');
+
+        // --- Utility Functions (Left largely untouched as they are structure-specific) ---
+
+        /**
+         * Renders a single friend request element.
+         */
+        function renderFriendRequest({ requestId, fromUser, fullName, avatar }) {
+          return `
+        <div id="request-${requestId}" class="flex items-center justify-between p-2 rounded-lg bg-red-50 mb-4">
+          <div class="flex items-center">
+              <div class="relative">
+                <img loading="lazy" src="${avatar}" class="w-6 h-6 rounded-full object-cover">
+              </div>
+              <div class="ml-3">
+                <p class="font-bold text-gray-900 leading-snug">${fullName}</p>
+              </div>
+          </div>
+          <div class="space-x-2">
+            <button onclick="window.respondToRequest('${requestId}', 'accept')" 
+              class="text-xs px-3 py-1 bg-green-500 text-white rounded-full hover:bg-green-600 transition">Accept</button>
+            <button onclick="window.respondToRequest('${requestId}', 'delete')" 
+              class="text-xs px-3 py-1 bg-gray-400 text-white rounded-full hover:bg-gray-500 transition">Delete</button>
+          </div>
+        </div>
+      `;
+        }
+
+        /**
+         * Renders a single friend list item.
+         */
+        function renderFriendListItem({ _id, fullName, avatar, isOnline }) {
+          const onlineClass = isOnline ? 'bg-green-500' : 'bg-gray-400';
+          const onlineClassBorder = isOnline ? 'border-green' : 'border-gray-400';
+
+          const defaultAvatar = 'https://via.placeholder.com/32/3b82f6/ffffff?text=' + (fullName ? fullName.charAt(0).toUpperCase() : '?');
+
+          return `
+        <li class="friend-list-item flex items-center justify-between hover:bg-gray-50 p-2 rounded-lg cursor-pointer transition duration-100"
+          data-friend-id="${_id}" data-friend-name="${fullName}">
+          <div class="flex items-center">
+            <div class="relative">
+              <img src="${avatar || defaultAvatar}"
+                class="w-8 h-8 rounded-full object-cover border ${onlineClassBorder}">
+              <span id="status-${_id}"
+                class="absolute bottom-0 right-0 w-2 h-2 ${onlineClass} border border-white rounded-full"></span>
+            </div>
+            <span class="ml-3 font-medium text-gray-800">${fullName}</span>
+          </div>
+          <button class="text-gray-500 hover:text-blue-500 text-sm chat-btn" data-friend-id="${_id}" data-friend-name="${fullName}">Chat</button>
+        </li>
+      `;
+        }
+
+        /**
+         * Adds a message bubble to the chat window.
+         */
+        function appendMessage(message, type) {
+          const alignClass = type === 'sent' ? 'justify-end' : 'items-start';
+          const bubbleClass = type === 'sent' ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 rounded-tl-none';
+
+          const messageHtml = `
+        <div class="flex w-full ${alignClass}">
+          <div class="max-w-[75%] p-2 ${bubbleClass} rounded-xl shadow-sm text-sm">
+            ${message.content}
+            <div class="text-[10px] opacity-70 mt-1">${new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+          </div>
+        </div>
+      `;
+          chatBody.prepend(messageHtml);
+          chatBody.scrollTop(0);
+        }
+
+
+        // --- Socket Event Emitters ---
+
+        window.respondToRequest = function (requestId, action) {
+          // 1. Emit response to server
+          socket.emit('friend:request_response', { requestId, action });
+
+          // 2. Optimistically update UI
+          $(`#request-${requestId}`).remove();
+          const requestCount = friendRequestArea.find('.bg-red-50').length; // Corrected count logic
+          friendRequestArea.find('h3').text(`Connect Requests (${requestCount})`);
+
+        }
+
+        function sendChatMessage() {
+          const content = chatInput.val().trim();
+          if (content && activeChatFriendId) {
+            // Use current timestamp for local display
+            appendMessage({ content: content, createdAt: new Date() }, 'sent');
+
+            // 1. Emit message to server
+            socket.emit('chat:send_message', {
+              toUserId: activeChatFriendId,
+              content: content
+            });
+            // 2. Clear input
+            chatInput.val('');
+          }
+        }
+
+
+        // --- Chat Window Handlers ---
+
+        function openChatWindow(friendId, friendName) {
+          activeChatFriendId = friendId;
+          activeChatFriendName = friendName;
+
+          chatFriendName.text(friendName);
+          chatBody.empty(); // Clear previous chat history
+
+          // Update status dot
+          const isOnline = onlineFriends.has(friendId);
+          friendStatusDot.removeClass('bg-green-500 bg-gray-400').addClass(isOnline ? 'bg-green-500' : 'bg-gray-400');
+
+          // Show window 
+          chatWindow.removeClass('hidden');
+
+          // Load chat history from server (assuming your endpoint is correct)
+          ajaxResponseRequest(`/api/v1/chats/messages/${friendId}`, {}, "GET")
+            .then(result => {
+              // Check if result.data.messages exists and is an array
+              const messages = (result.data && result.data.messages) ? result.data.messages : [];
+
+              messages.forEach(msg => {
+                const senderId = msg.sender;
+                // check sender
+                const type = senderId === CURRENT_USER_ID ? 'sent' : 'received';
+                appendMessage(msg, type);
+              });
+            }).catch(err => console.error("Error loading chat history:", err));
+        }
+
+        // Attach click handler to Friend List items 
+        $(document).on('click', '.chat-btn', function () {
+          const friendId = $(this).data('friend-id');
+          const friendName = $(this).data('friend-name');
+          openChatWindow(friendId, friendName);
+        });
+
+        // Attach click handler to minimize button
+        $('#minimize-chat').on('click', function () {
+          chatWindow.addClass('hidden');
+          activeChatFriendId = null;
+          activeChatFriendName = null;
+        });
+
+        // Attach handler for sending message on Enter key press
+        chatInput.on('keydown', function (e) {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendChatMessage();
+          }
+        });
+
+
+        // ---  friend reques trigger from post ---
+        $(document).on('click', '.post-chat-trigger', async function () {
+          const postOwnerId = $(this).data('post-user-id').toString(); // User B
+          const postOwnerName = $(this).data('post-user-name');
+
+          if (postOwnerId === CURRENT_USER_ID) {
+            console.log("Cannot send request to self.");
+            return;
+          }
+
+          try {
+            // Check if  already friends
+            const checkResult = await ajaxResponseRequest(`/api/v1/users/check-friendship/${postOwnerId}`, {}, "GET");
+            const isFriend = checkResult.data.isFriend;
+
+            if (isFriend) {
+              openChatWindow(postOwnerId, postOwnerName);
+            } else {
+              socket.emit('friend:send_request', postOwnerId);
+              alert(`Connection request sent to ${postOwnerName}!`); // Simple feedback
+            }
+
+          } catch (error) {
+            console.error("Error checking friendship or sending request:", error);
+            alert("An error occurred. Could not send request or open chat.");
+          }
+        });
+
+
+        // --- Socket Event Listeners ---
+
+        //  Initial Load: Fetch Friends
+        function fetchInitialData() {
+          ajaxResponseRequest('/api/v1/users/me/friends-data', {}, "GET")
+            .then(result => {
+              if (result.success) {
+
+                // Load Friends List
+                const friends = result.data || [];
+                friendList.empty();
+                friends.forEach(f => {
+                  friendList.append(renderFriendListItem({
+                    _id: f._id,
+                    fullName: f.fullName,
+                    avatar: f.avatar,
+                    isOnline: f.onlineStatus
+                  }));
+                  if (f.onlineStatus) {
+                    onlineFriends.add(f._id.toString());
+                  }
+                });
+                $('#friends-list-area h3').text(`Friends List (${friends.length})`);
+              }
+
+            }).catch(err => console.error("Initial data load failed:", err));
+        }
+        fetchInitialData();
+
+
+
+        // also show pending friendList
+        function fetchIPendingFriendRequest() {
+          ajaxResponseRequest('/api/v1/friend-requests/pending', {}, "GET")
+            .then(result => {
+              if (result.success) {
+                // Load already friends 
+                const requests = result.data || [];
+                requests.forEach(r => {
+                  friendRequestListDiv.html(renderFriendRequest({
+                    requestId: r._id,
+                    fromUser: r.fromUser._id,
+                    fullName: r.fromUser.fullName,
+                    avatar: r.fromUser.avatar
+                  }));
+                });
+                $('#friend-request-area h3').text(`Connect Requests (${requests.length})`);
+              };
+
+            }).catch(err => console.error("Initial data load failed:", err));
+        }
+        fetchIPendingFriendRequest();
+
+
+
+        //  Incoming Friend Request 
+        socket.on('friend:request_received', async (data) => {
+          try {
+            const userResult = await ajaxResponseRequest(`/api/v1/users/users/${data.fromUser}`, {}, "GET");
+
+            const fullName = userResult.data.fullName || userResult.data.fullName; // Use fullName or fallback
+
+            friendRequestArea.append(renderFriendRequest({
+              requestId: data.requestId,
+              fromUser: data.fromUser,
+              fullName: fullName
+            }));
+
+            const requestCount = friendRequestArea.find('.bg-red-50').length;
+            friendRequestArea.find('h3').text(`Connect Requests (${requestCount})`);
+
+          } catch (e) {
+            console.error("Failed to fetch requester details:", e);
+          }
+        });
+
+        //  if Friend Request Accepted 
+        socket.on('friend:accepted', async (data) => {
+          try {
+            // Fetch the new friend's data (avatar/online status for list rendering)
+            const friendResult = await ajaxResponseRequest(`/api/v1/users/users/${data.newFriendId}`, {}, "GET");
+
+            const newFriendData = friendResult.data;
+            const friendName = newFriendData.fullName || newFriendData.fullName;
+
+            // Add new friend to the list
+            friendList.append(renderFriendListItem({
+              _id: newFriendData._id,
+              fullName: friendName,
+              avatar: newFriendData.avatar,
+              isOnline: onlineFriends.has(newFriendData._id.toString())
+            }));
+
+            const friendCount = friendList.children().length;
+            $('#friends-list-area h3').text(`Friends List (${friendCount})`);
+
+            // Open chat window if the friendship was initiated from a post click
+            if (activeChatFriendId === data.newFriendId) {
+              openChatWindow(data.newFriendId, friendName);
+            }
+
+          } catch (e) {
+            console.error("Failed to fetch new friend details:", e);
+          }
+        });
+
+        //  Friend Status/Presence Update 
+        socket.on('user_presence', (data) => {
+          const { userId, online } = data;
+          const statusDot = $(`#status-${userId}`);
+
+          // change color status
+          if (statusDot.length > 0) {
+            statusDot.removeClass('bg-green-500 bg-gray-400');
+            if (online) {
+              statusDot.addClass('bg-green-500');
+              onlineFriends.add(userId);
+            } else {
+              statusDot.addClass('bg-gray-400');
+              onlineFriends.delete(userId);
+            }
+          }
+
+          // Update chat window status if the friend is currently active
+          if (activeChatFriendId === userId) {
+            friendStatusDot.removeClass('bg-green-500 bg-gray-400').addClass(online ? 'bg-green-500' : 'bg-gray-400');
+          }
+        });
+
+        //  Receiving Chat Message
+        socket.on('chat:receive_message', (messagePayload) => {
+          console.log('receive message',messagePayload);
+          
+          // Only display message if the chat window for this friend
+          if (activeChatFriendId === messagePayload.senderId) {
+            appendMessage(messagePayload, 'received');
+          } else {
+            // Handle notification for messages from other users
+            console.log(`New message from ${messagePayload.senderId}`);
+          }
+        });
+
+        //  Message Sent Confirmation 
+        socket.on('chat:message_sent', (messagePayload) => {
+          // send from server
+          console.log('message send');
+
+        });
+
+        //  Error Handling 
+        socket.on('error:chat', (message) => {
+          console.error("Chat Error:", message);
+          alert(`Chat Error: ${message}`);
+        });
+
+        socket.on('error:friend_request', (message) => {
+          console.error("Friend Request Error:", message);
+          alert(`Friend Request Failed: ${message}`);
+        });
+
+      });
+
+    </script>

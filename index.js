@@ -1,74 +1,50 @@
-const express = require("express");
-const server = express();
-
-require("dotenv/config");
-const port = process.env.PORT || 3000;
-// const api_url = process.env.API_URL;
-
-// ==================== Middlewares ==========================
-// for cors policy (allow all origins)
-const cors = require("cors");
-server.use(cors());
-server.options("*",cors());
-
-// middleware for json 
-const bodyParser = require("body-parser");
-server.use(bodyParser.json());
-
-// for http request log 
-const morgan = require("morgan");
-server.use(morgan("tiny"))
-
-// for json auth 
-const authJwt = require("./helpers/jwt");
-server.use(authJwt());
-
-// for static files (publish a folder)
-server.use("/public/uploads",express.static(__dirname+"/public/uploads"));
-server.use("/",express.static(__dirname+"/public/"));
+import dotenv from "dotenv";
+import connectDatabase from "./src/database/connection.js";
+import app from "./app.js";
+import { createServer } from "http"; // Import createServer for Socket.io
+import { Server } from "socket.io"; // Import Socket.io
+import socketController from "./src/socket/socketController.js";
+import firebaseInit from "./src/config/firebase.js";
+import databaseSeeder from "./src/database/databaseSeeder.js";
 
 
-// Error handling (any type of error will send this response ) : it's a global error handling
-const errorHanlder = require("./helpers/errorHander");
-server.use((error,req,res,next) => {
-    errorHanlder(error,req,res,next);
+
+
+dotenv.config({
+    path: "./.env"
 });
 
+const port = process.env.PORT;
 
-// product router 
-const productRouter = require("./routers/products");
-server.use("/products",productRouter);
+// If database is connected, start the Express server and Socket.io
+connectDatabase().then(async () => {
+    // await databaseSeeder();
 
-// category router 
-const categoryRouter = require("./routers/categories");
-server.use("/categories", categoryRouter);
-
-// order router 
-const orderRouter = require("./routers/orders");
-server.use("/orders", orderRouter);
-
-// user router 
-const userRouter = require("./routers/users");
-server.use("/users",userRouter);
-// ==================== Middlewares ends ==========================
+    // init firebase 
+    await firebaseInit();
 
 
+    const httpServer = createServer(app);
+    // Attach socket.io to the HTTP server
+    const io = new Server(httpServer, {
+        cors: {
+            origin: "*",  // Allow all origins for simplicity (change for production)
+            methods: ["GET", "POST"],
+            credentials: true
+        }
+    });
+
+    // init 
+    socketController(io);
+
+    await databaseSeeder();
+
+    // Start the server on port 5050
+    httpServer.listen(port, () => {
+        console.log(`Server running on http://localhost:${port}`);
+    });
 
 
-
-// mongoDB database connection with mongoose
-const mongoose = require("mongoose");
-
-// connect with database 
-mongoose.connect(process.env.CONNECTION_STRING, {
-    dbName: "nodeapidb"
-})
-    .then(() => {
-        console.log("MongoDB Connected!");
-    }).catch((error) => {
-        console.log(error);
-    })
-
-server.listen(port, () => {
-    console.log(`server is running http://localhost:${port}`);
+}).catch((error) => {
+    console.log("MongoDB connection Failed: ", error);
 });

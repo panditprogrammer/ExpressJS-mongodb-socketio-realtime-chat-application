@@ -1,6 +1,0 @@
-# change created status code 
-# validation status code
-# add timestamps in collections
-
-# need to fix 
-bug fix - User.fineOne();

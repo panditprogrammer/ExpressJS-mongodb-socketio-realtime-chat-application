@@ -1,3 +1,12 @@
-/node_modules
+node_modules
+
 .env
-package-lock.json
+
+.env.production
+public/uploads
+
+backups
+public/*.txt
+.logs
+
+firebase.json

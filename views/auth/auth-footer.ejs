@@ -1,0 +1,97 @@
+<script type="module">
+    // Import required Firebase modules
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-auth.js";
+
+
+    const $googleSignInBtn = $("#googleSignInBtn");
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDWMdMVu-TlD3mympr3iW1piylxfMyVLjg",
+        authDomain: location.host,
+        projectId: "bizmapia-142cf",
+        storageBucket: "bizmapia-142cf.firebasestorage.app",
+        messagingSenderId: "495579113846",
+        appId: "1:495579113846:web:6102a9d0c8865198a6b257",
+        measurementId: "G-4REM4T4J6G"
+    };
+
+    // Initialize Firebase
+    const firebaseApp = initializeApp(firebaseConfig);
+    const firebaseAuth = getAuth(firebaseApp);
+    const provider = new GoogleAuthProvider();
+
+    $googleSignInBtn.click(async function () {
+        $("#loader").show();
+        await signInWithRedirect(firebaseAuth, provider);
+    });
+
+    // After returning from the redirect when your app initializes you can obtain the result
+    const result = await getRedirectResult(firebaseAuth);
+
+    if (result && result.user) {
+        const user = result.user;
+        // This gives you a Google Access Token.
+        localStorage.setItem("email", user.email);
+        localStorage.setItem("fullName", user.displayName);
+        localStorage.setItem("avatar", user.photoURL);
+
+        user.getIdToken().then((googleIdToken) => {
+            localStorage.setItem("googleIdToken", googleIdToken);
+
+            // if user is already registered redirect to login 
+            ajaxResponseRequest("/api/v1/users/login/social", { googleIdToken }, "POST").then((result) => {
+                console.log("login attempt ", result);
+
+                if (result?.success) {
+                    localStorage.removeItem("email");
+                    localStorage.removeItem("fullName");
+                    localStorage.removeItem("avatar");
+                    localStorage.removeItem("googleIdToken");
+                    location.href = "/";
+                }
+            }).catch((error) => {
+                
+                const response = error.responseJSON;
+                if (response) {
+                    console.log("error from server", response.message);
+                    alertify.error(response.statusCode + " " + response.message);
+                }
+                location.href = "/users/register/social";
+            });
+
+        });
+
+    }
+
+
+
+    $(document).ready(function () {
+
+        if (!((location.pathname.includes("/users/login")) || (location.pathname.includes("/users/account-recovery")) || (location.pathname.includes("/users/account-verification")) || (location.pathname.includes("/users/register")))) {
+            ajaxResponseRequest('/api/v1/users/verified/visitor', null, "GET").then((result) => {
+
+                if (result?.success && result?.statusCode == 200) {
+                    if (!result?.data) {
+                        if (!location.pathname.includes("/businesses/p/")) {
+                            setTimeout(() => {
+                                $("#modal").addClass("flex").removeClass("hidden");
+                            }, 10000);
+                        } else {
+                            $("#modal").addClass("flex").removeClass("hidden");
+                        }
+                        $(document).click(function () {
+                            $("#modal").addClass("flex").removeClass("hidden");
+                        })
+                    }
+                }
+
+            }).catch((error) => {
+                const errorResponse = error.responseJSON;
+            });
+
+        }
+
+    });
+
+</script>
