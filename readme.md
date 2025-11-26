@@ -1,343 +1,149 @@
-<!-- get routes  -->
-# An Ecommerce Restful API created by Pandit Programmer using NodeJS (ExpressJS) and MongoDB Database 
+# linkedit 
 
-## POST 
-
-- Create New Product
+install dependencies
 
 ```
-/products
+npm install
 ```
 
-use these fields to create new product
+
+## Compile tailwind css 
+read this [https://tailwindcss.com/docs/installation/tailwind-cli]
+
+```npx @tailwindcss/cli -i ./src/input.css -o ./public/css/tailwind.css --watch```
 
 
-```
-{
-   "name": "",
-    "description":"",
-    "richDescription": "",
-    "image": "",
-    "brand": "",
-    "price": Number,
-    "category": "document_id",
-    "stock": number,
-    "rating": number,
-    "review": number,
-    "featured": false
-}
-```
+## Application configurations
 
-## GET
-
--  Get all Products
+make sure correct read and write permission for user
 
  ```
- /products
+ /uploads
+ /backups
+ /logs
  ```
 
--  get single product by id
+run the development server on local
 
 ```
-/products/:id
+npm run dev
 ```
 
-## Filter Products with query parameters
-
-- Filter products by category (id)
-
+VPS run on Server
 ```
-/products?categories=id1,id2,idN
+pm2 start node --node-args="-r dotenv/config --experimental-json-modules" index.js --name "bizmapia"
 ```
 
-- Filter Products by Brands
+Run for debug 
+```
+node -r dotenv/config --experimental-json-modules index.js
 
 ```
-/products?brands=intel
-```
-
-- Filter Products by featured (true, false)
+-----------------------------------------------------------------------------------------------
+Start pm2 with watching, this will restart automatically when file changes detect, and ignore some file folders using this command
 
 ```
-/products?featured=true
+pm2 restart bizmapia --watch --ignore-watch="node_modules public logs"
+```
+NOTE: Some time it doesn't work , don't use this
+-----------------------------------------------------------------------------------------------
+
+
+
+## How to check if Application is running....
+
+Here is the base url structure
+http://localhost:port/api/v1
+
+- local Server
+http://localhost:5050/api/v1
+
+- Live Server
+https://mydomain.com/api/v1
+
+
+
+## API Endpoints :  /api/v1
+
+
+
+
+## deploy to vps
+
+1. make dir to /var/www/html/your-dir
+
+2. upload files
+
+3. Create nginx configuration 
+
+```
+sudo nano /etc/nginx/sites-available/linkedit.mydomain.com
 ```
 
-- Filter products by Price range
+## Nginx Server configuration 
+
+past this code 
 
 ```
-/products?min=500&max=1500
-```
+server {
+    server_name mydomain.com www.mydomain.com;   # Replace with your server's IP address or domain name
 
-- Limit and offset Products list
-
-```
-/products?limit=10&offset=5
-```
+    location /__/auth {
+        proxy_pass https://bizmapia-142cf.firebaseapp.com;
+    }
 
 
-## PUT 
+    location / {
 
-- Update Product by id
+    	# Rate limiting (protect from DDoS)
+	limit_req zone=rate_limit_zone burst=20 nodelay;
+        limit_conn conn_limit_zone 10;
 
-```
-/products/:id
-```
+        # Limit max upload size (adjust if needed)
+        client_max_body_size 100M;
 
-```
-{
-    "name": "",
-    "description":"",
-    "richDescription": "",
-    "brand": "",
-    "price": Number,
-    "category": "document_id",
-    "stock": number,
-    "rating": number,
-    "review": number,
-    "featured": false
+        # Proxy settings
+        proxy_pass http://localhost:5050;  # Node.js app
+        proxy_http_version 1.1;
+
+        # Forward real protocol and IP
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-For $remote_addr;
+
+        # For WebSocket support (if any)
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+
+        # Preserve Host header and disable cache for upgrades
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+
+    }
+
+ 
+    listen 443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/mydomain.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/mydomain.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+
 }
-```
-
-- Upload product images by id
-
-```
-/products/uploads/:id
-```
+server {
+    if ($host = www.mydomain.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
 
 
-## DELETE
-
-- Delete one or more product(s) by id
-```
-/products/delete?id=id1,id2,idN
-```
-
-- Delete all products at once
-```
-/products/delete
-```
+    if ($host = mydomain.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
 
 
-
-# Category Routes
-
-Here is the Supported HTTP Routes (GET, POST, PUT and DELETE) for category
-
-- Create New Category
-
-## POST
-```
-/categories
-```
-- Use these fields to create new Category
-
-```
-{
-    "name" : "",
-    "icon": "",
-    "color": ""
+    listen 80;
+    server_name mydomain.com www.mydomain.com;
+    return 404; # managed by Certbot
 }
-```
 
-## GET
-- Get all Categories
 
-```
-/categories
-```
-
-- Get Single Category by id
-
-```
-/categories/:id
-```
-
-## PUT
-
-- Update single category by id 
-
-```
-/categories/:id
-```
-
-Only these fields can be updated
-
-```
-{
-    name: "String",
-    icon: "String",
-    color: "String"
-}
-```
-
-## DELETE
-
-- Delete one or more Categories  
-
-```
-/categories/delete?id=id1,id2,idN
-```
-
-- Delete all at once
-
-```
-/categories/delete
-```
-
-
-# Orders Routes 
-
-## POST
-
-- Create new Order
-
-```
-/orders
-```
-
-```
-{
-    "orderItems":[
-        {
-            "quantity": Number,
-            "product": Product_id
-        },
-        
-    ],
-   "shippingAddress1": "String",
-   "shippingAddress2": "String",
-   "city": "String",
-   "zip": "String",
-   "country": "String",
-   "phone": "String",
-   "status": "Pending",
-   "user": User_id
-}
-```
-
-
-## PUT
-
-- Update order 
-
-```
-/orders/:id
-```
-
-Only these fields can be updated
-
-```
-{
-    "status": "Delivered"
-}
-```
-
-
-## GET
-
-- Get all Orders
-
-```
-/orders
-```
-
-- Get Single order by id
-
-```
-/orders/:id
-```
-
-- Get total Orders
-
-```
-/orders/get/count
-```
-
-- Get total Sales
-
-```
-/orders/get/totalsales
-```
-
-- Get orders by user_id
-
-```
-/orders/get/user/:userId
-```
-
-
-## DELETE 
-
-- Delete Order by id
-
-```
-/orders/:id
-```
-
-# Users Routes
-
-## POST
-
-- Create new user
-
-```
-/users/register
-```
-
-- Login User (authenticate user)
-
-```
-/users/login
-```
-
-Use these fields to login
-
-```
-{
-    email: "email@example.com",
-    password: "secret_password"
-}
-```
-
-## PUT 
-
-- Update user by id
-
-```
-/users/:id
-```
-
-Only these fields can be updated
-
-```
-name: "String",
-phone: "String",
-street: "String",
-apartment: "String",
-zip: "String",
-city: "String",
-country: "String"
-```
-
-## GET 
-
-- Get all users
-
-```
-/users
-```
-
-- Get single user by id
-
-```
-/users/:id
-```
-
-
-## DELETE 
-
-- Delete one or more user by ids
-
-```
-/users/delete?id=id1,id2,idN
 ```
