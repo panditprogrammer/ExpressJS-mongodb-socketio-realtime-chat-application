@@ -31,7 +31,7 @@ npm run dev
 
 VPS run on Server
 ```
-pm2 start node --node-args="-r dotenv/config --experimental-json-modules" index.js --name "bizmapia"
+pm2 start node --node-args="-r dotenv/config --experimental-json-modules" index.js --name "mydomain"
 ```
 
 Run for debug 
@@ -43,7 +43,7 @@ node -r dotenv/config --experimental-json-modules index.js
 Start pm2 with watching, this will restart automatically when file changes detect, and ignore some file folders using this command
 
 ```
-pm2 restart bizmapia --watch --ignore-watch="node_modules public logs"
+pm2 restart mydomain --watch --ignore-watch="node_modules public logs"
 ```
 NOTE: Some time it doesn't work , don't use this
 -----------------------------------------------------------------------------------------------
@@ -89,7 +89,7 @@ server {
     server_name mydomain.com www.mydomain.com;   # Replace with your server's IP address or domain name
 
     location /__/auth {
-        proxy_pass https://bizmapia-142cf.firebaseapp.com;
+        proxy_pass https://mydomain-193cf.firebaseapp.com;
     }
 
 
